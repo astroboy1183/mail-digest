@@ -26,7 +26,9 @@ FYI / NOISE. One agent, one task, one bot: `@jayanth_morning_email_bot`.
   bodies. Each email also gets a deep link
   (`mail.google.com/mail/u/0/#all/<id>`) straight to the message, and a
   VIP flag when the sender matches `VIP_SENDERS` (substring,
-  case-insensitive — edit that list at the top of the file).
+  case-insensitive). The list comes from the optional `VIP_SENDERS`
+  secret as comma-separated fragments — never from code, since this
+  repo is public.
 - **`summarize(emails)`** — a single model call. The prompt pastes every
   email as one line and demands a fixed output shape: one headline, then
   NEEDS ACTION (reply/decision/deadline, each with its deep link on its
@@ -53,7 +55,8 @@ FYI / NOISE. One agent, one task, one bot: `@jayanth_morning_email_bot`.
   (`37 0 * * *` UTC = 06:07 IST; backup 07:07)
 - Run now: `gh workflow run mail-digest.yml -R astroboy1183/mail-digest`
 - Secrets (Actions): `ANTHROPIC_API_KEY`, `TELEGRAM_BOT_TOKEN`,
-  `TELEGRAM_CHAT_ID`, `GMAIL_CREDENTIALS_JSON`, `GMAIL_TOKEN_JSON`
+  `TELEGRAM_CHAT_ID`, `GMAIL_CREDENTIALS_JSON`, `GMAIL_TOKEN_JSON`,
+  optional `VIP_SENDERS` (comma-separated sender fragments)
 - Gmail token expired? `cd ~/agents/mail_digest && .venv/bin/python
   mail_digest.py` locally (opens browser), then update the
   `GMAIL_TOKEN_JSON` secret from the fresh `token.json`.

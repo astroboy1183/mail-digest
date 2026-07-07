@@ -31,8 +31,12 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 IST = ZoneInfo("Asia/Kolkata")
 
 # Substring-matched against the From header (case-insensitive). VIP mail
-# must never land in NOISE, however boring the subject looks.
-VIP_SENDERS = []  # e.g. ["boss@company.com", "@university.edu"]
+# must never land in NOISE, however boring the subject looks. Comes from
+# the VIP_SENDERS secret (comma-separated), NOT code — this repo is
+# public and personal addresses don't belong in it.
+VIP_SENDERS = [
+    s.strip() for s in os.environ.get("VIP_SENDERS", "").split(",") if s.strip()
+]
 
 
 def digest_window():
