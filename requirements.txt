@@ -1,6 +1,6 @@
-google-api-python-client
-google-auth
-google-auth-oauthlib
-anthropic
-requests
-python-dotenv
+google-api-python-client~=2.198
+google-auth~=2.55
+google-auth-oauthlib~=1.4
+anthropic~=0.116
+requests~=2.34
+python-dotenv~=1.2

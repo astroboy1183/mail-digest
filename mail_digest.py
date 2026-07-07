@@ -30,6 +30,10 @@ TOKEN_FILE = BASE_DIR / "token.json"
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 IST = ZoneInfo("Asia/Kolkata")
 
+# Substring-matched against the From header (case-insensitive). VIP mail
+# must never land in NOISE, however boring the subject looks.
+VIP_SENDERS = []  # e.g. ["boss@company.com", "@university.edu"]
+
 
 def digest_window():
     """(start, end): the 24h window ending at the most recent 6:00 AM IST.
@@ -103,11 +107,15 @@ def fetch_emails(service, start, end):
         headers = {
             h["name"]: h["value"] for h in msg.get("payload", {}).get("headers", [])
         }
+        sender = headers.get("From", "(unknown sender)")
         emails.append(
             {
-                "from": headers.get("From", "(unknown sender)"),
+                "from": sender,
                 "subject": headers.get("Subject", "(no subject)"),
                 "snippet": msg.get("snippet", ""),
+                # deep link straight to the message in the Gmail web UI
+                "link": f"https://mail.google.com/mail/u/0/#all/{msg_id}",
+                "vip": any(v.lower() in sender.lower() for v in VIP_SENDERS),
             }
         )
     return emails
@@ -116,20 +124,25 @@ def fetch_emails(service, start, end):
 def summarize(emails):
     """One model call: the day's mail sorted by what it needs from me."""
     email_lines = "\n".join(
-        f"- From: {e['from']} | Subject: {e['subject']} | Snippet: {e['snippet']}"
+        f"- From: {e['from']}{' [VIP]' if e['vip'] else ''} | "
+        f"Subject: {e['subject']} | Snippet: {e['snippet']} | Link: {e['link']}"
         for e in emails
     )
     prompt = (
         "You are composing my morning mail digest. Be terse. "
         "Plain text only — no markdown headers or bold.\n\n"
-        "=== INPUT: every email from the last 24h (sender, subject, snippet) ===\n"
+        "=== INPUT: every email from the last 24h "
+        "(sender, subject, snippet, link) ===\n"
         f"{email_lines}\n\n"
         "Produce EXACTLY this output structure:\n\n"
         "<one-line headline for the day's mail>\n"
         "NEEDS ACTION: emails needing a reply/decision/deadline — sender + "
-        "what + when (or 'nothing' if none)\n"
+        "what + when, then the email's Link on its own line (or 'nothing' "
+        "if none). Copy links verbatim — never invent one.\n"
         "FYI: noteworthy, no action needed, grouped by sender/thread\n"
-        "NOISE: one line — count of newsletters/promos/automated mail"
+        "NOISE: one line — count of newsletters/promos/automated mail\n\n"
+        "Emails marked [VIP] must appear under NEEDS ACTION or FYI, "
+        "never NOISE."
     )
     return ask_llm(prompt)
 

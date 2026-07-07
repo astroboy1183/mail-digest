@@ -23,11 +23,15 @@ FYI / NOISE. One agent, one task, one bot: `@jayanth_morning_email_bot`.
   (`after:<epoch> before:<epoch> -category:spam`), paginated 100 ids at a
   time, then a metadata-only fetch per message (From, Subject + Gmail's
   own snippet). Metadata format keeps it fast and avoids downloading
-  bodies.
+  bodies. Each email also gets a deep link
+  (`mail.google.com/mail/u/0/#all/<id>`) straight to the message, and a
+  VIP flag when the sender matches `VIP_SENDERS` (substring,
+  case-insensitive — edit that list at the top of the file).
 - **`summarize(emails)`** — a single model call. The prompt pastes every
   email as one line and demands a fixed output shape: one headline, then
-  NEEDS ACTION (reply/decision/deadline), FYI (grouped by sender), NOISE
-  (one count line). An empty inbox skips the model entirely
+  NEEDS ACTION (reply/decision/deadline, each with its deep link on its
+  own line), FYI (grouped by sender), NOISE (one count line). VIP mail
+  may never land in NOISE. An empty inbox skips the model entirely
   ("Quiet inbox ☕").
 - **`main()`** — window → fetch → summarize → send, with a header that
   states the exact window and email count, so a delayed run is honest
