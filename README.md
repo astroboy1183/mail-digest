@@ -2,15 +2,54 @@
 
 Gmail 24h digest → Telegram, ~6:07 AM IST via GitHub Actions.
 
-All mail from the previous 6AM→6AM IST window (anchored, so a delayed run
-covers the same day), sorted into NEEDS ACTION / FYI / NOISE.
+All mail from the previous 6AM→6AM IST window sorted into NEEDS ACTION /
+FYI / NOISE. One agent, one task, one bot: `@jayanth_morning_email_bot`.
 
-One agent, one task, one bot: `@jayanth_morning_email_bot`.
-Part of the personal-agents fleet (`[gather] → [summarize] → [Telegram]`).
+## How the code works
 
-- Schedule: `.github/workflows/mail-digest.yml` (`37 0 * * *` UTC = 06:07 IST; backup 07:07 with dedupe guard)
+`mail_digest.py`, in pipeline order:
+
+- **`digest_window()`** — returns the 24h window ending at the most
+  recent 6:00 AM IST. It is *anchored*, not rolling: a run delayed to
+  7:30 still covers exactly the same 6AM→6AM day, so the primary cron and
+  the backup cron can never produce gaps or overlaps between days.
+- **`gmail_service()`** — builds an authenticated Gmail client from
+  `token.json` (OAuth refresh token). Expired tokens refresh silently.
+  If there's no usable token: locally it opens a browser consent flow
+  (`InstalledAppFlow.run_local_server`); in CI it raises immediately with
+  instructions instead — GitHub Actions has no browser, and hanging
+  forever is worse than a loud failure.
+- **`fetch_emails(service, start, end)`** — one Gmail search
+  (`after:<epoch> before:<epoch> -category:spam`), paginated 100 ids at a
+  time, then a metadata-only fetch per message (From, Subject + Gmail's
+  own snippet). Metadata format keeps it fast and avoids downloading
+  bodies.
+- **`summarize(emails)`** — a single model call. The prompt pastes every
+  email as one line and demands a fixed output shape: one headline, then
+  NEEDS ACTION (reply/decision/deadline), FYI (grouped by sender), NOISE
+  (one count line). An empty inbox skips the model entirely
+  ("Quiet inbox ☕").
+- **`main()`** — window → fetch → summarize → send, with a header that
+  states the exact window and email count, so a delayed run is honest
+  about what it covered.
+- **`agentlib.py`** (vendored) — `ask_llm()` one-shot model call;
+  `send_telegram()` chunked sends.
+
+## Design notes
+
+- The workflow's "Restore Gmail OAuth files" step materializes
+  `credentials.json` / `token.json` from repo secrets on every run — the
+  files are never committed (see `.gitignore`).
+- Two crons + dedupe guard: backup at 07:07 IST delivers only if the
+  06:07 primary was dropped or failed.
+
+## Ops
+
+- Schedule: `.github/workflows/mail-digest.yml`
+  (`37 0 * * *` UTC = 06:07 IST; backup 07:07)
 - Run now: `gh workflow run mail-digest.yml -R astroboy1183/mail-digest`
-- Secrets (Actions): `ANTHROPIC_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`,
-  `GMAIL_CREDENTIALS_JSON`, `GMAIL_TOKEN_JSON`
-- Gmail token expired? Re-run the OAuth flow locally, then update the
+- Secrets (Actions): `ANTHROPIC_API_KEY`, `TELEGRAM_BOT_TOKEN`,
+  `TELEGRAM_CHAT_ID`, `GMAIL_CREDENTIALS_JSON`, `GMAIL_TOKEN_JSON`
+- Gmail token expired? `cd ~/agents/mail_digest && .venv/bin/python
+  mail_digest.py` locally (opens browser), then update the
   `GMAIL_TOKEN_JSON` secret from the fresh `token.json`.
