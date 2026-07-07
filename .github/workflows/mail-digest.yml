@@ -1,0 +1,75 @@
+name: Mail digest
+
+on:
+  schedule:
+    # Primary: 00:37 UTC = 06:07 IST. Odd minute avoids GitHub's
+    # top-of-hour cron congestion.
+    - cron: '37 0 * * *'
+    # Backup: 01:37 UTC = 07:07 IST. GitHub delays or drops schedule
+    # events under load (fleet lesson from 2026-07-04). The guard step skips
+    # this run when the primary already handled today, so it only delivers
+    # when the primary was dropped — or failed, making it a retry too.
+    - cron: '37 1 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  actions: read  # guard step lists today's runs
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Skip if an earlier run already handled today
+        id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Manual runs always proceed; only scheduled runs dedupe against
+          # each other. Fails open — a broken check must never cost a send.
+          if [ "$GITHUB_EVENT_NAME" != "schedule" ]; then
+            exit 0
+          fi
+          today=$(date -u +%Y-%m-%d)
+          count=$(RUN_ID="$GITHUB_RUN_ID" gh api -X GET \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/mail-digest.yml/runs" \
+            -f event=schedule -f created=">=$today" \
+            --jq '[.workflow_runs[]
+                   | select(.id != (env.RUN_ID|tonumber))
+                   | select(.status == "queued" or .status == "in_progress"
+                            or .conclusion == "success")] | length') || count=0
+          case "$count" in ''|*[!0-9]*) count=0;; esac
+          if [ "$count" -gt 0 ]; then
+            echo "An earlier scheduled run already handled today — skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.skip != 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        if: steps.guard.outputs.skip != 'true'
+        run: pip install -r requirements.txt
+
+      - name: Restore Gmail OAuth files
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          GMAIL_CREDENTIALS_JSON: ${{ secrets.GMAIL_CREDENTIALS_JSON }}
+          GMAIL_TOKEN_JSON: ${{ secrets.GMAIL_TOKEN_JSON }}
+        run: |
+          printf '%s' "$GMAIL_CREDENTIALS_JSON" > credentials.json
+          printf '%s' "$GMAIL_TOKEN_JSON" > token.json
+
+      - name: Run agent
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python mail_digest.py
