@@ -12,6 +12,7 @@ Hard failures raise and land in the Actions log.
 """
 
 import os
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -120,18 +121,101 @@ def fetch_emails(service, start, end):
                 # deep link straight to the message in the Gmail web UI
                 "link": f"https://mail.google.com/mail/u/0/#all/{msg_id}",
                 "vip": any(v.lower() in sender.lower() for v in VIP_SENDERS),
+                # thread this message belongs to — messages in the same
+                # conversation are collapsed to one digest entry downstream
+                "threadId": msg.get("threadId"),
             }
         )
     return emails
 
 
+def group_by_thread(emails):
+    """Collapse messages sharing a threadId into one entry.
+
+    Gmail lists ids newest-first, so the first message we see for a thread
+    is its most recent one — we keep that as the thread's representative
+    and only note how many messages the thread carried. A thread counts as
+    VIP if any of its messages is. This keeps a busy back-and-forth from
+    flooding the prompt (and the digest) as N near-identical lines.
+    """
+    grouped = {}
+    order = []
+    for e in emails:
+        # Fall back to the per-message link when threadId is absent, so a
+        # message without one is never silently merged with another.
+        key = e.get("threadId") or e["link"]
+        if key not in grouped:
+            rep = dict(e)
+            rep["thread_count"] = 1
+            grouped[key] = rep
+            order.append(key)
+        else:
+            rep = grouped[key]
+            rep["thread_count"] += 1
+            rep["vip"] = rep["vip"] or e["vip"]
+    return [grouped[k] for k in order]
+
+
+def vip_block(emails):
+    """Code-generated '🔔 VIP' section, prepended to the digest.
+
+    Built deterministically from the already-computed e['vip'] flag so VIP
+    mail is GUARANTEED to surface — it does not depend on the model doing
+    the right thing. Returns '' when there is no VIP mail.
+    """
+    vips = [e for e in emails if e["vip"]]
+    if not vips:
+        return ""
+    lines = ["🔔 VIP"]
+    for e in vips:
+        lines.append(f"• {e['from']} — {e['subject']}")
+        lines.append(f"  {e['link']}")
+    return "\n".join(lines) + "\n\n"
+
+
+_LINK_RE = re.compile(r"https://mail\.google\.com/\S+")
+
+
+def validate_links(digest, valid_links):
+    """Strip any Gmail deep link the model emitted that isn't one of the
+    real per-message links.
+
+    The prompt asks the model to copy links verbatim and never invent one,
+    but nothing enforces it — a hallucinated link would send me to the
+    wrong message (or nowhere). Here we drop any link that isn't in the
+    real candidate set, keeping trailing punctuation intact.
+    """
+    valid = set(valid_links)
+
+    def repl(m):
+        url = m.group(0)
+        trailing = ""
+        while url and url[-1] in ".,;:)]}\"'":
+            trailing = url[-1] + trailing
+            url = url[:-1]
+        if url in valid:
+            return url + trailing
+        return "[invalid link removed]" + trailing
+
+    return _LINK_RE.sub(repl, digest)
+
+
 def summarize(emails):
-    """One model call: the day's mail sorted by what it needs from me."""
-    email_lines = "\n".join(
-        f"- From: {e['from']}{' [VIP]' if e['vip'] else ''} | "
-        f"Subject: {e['subject']} | Snippet: {e['snippet']} | Link: {e['link']}"
-        for e in emails
-    )
+    """One model call: the day's mail sorted by what it needs from me.
+
+    Expects thread-grouped entries (see group_by_thread): one line per
+    conversation, not per message.
+    """
+    lines = []
+    for e in emails:
+        vip = " [VIP]" if e["vip"] else ""
+        n = e.get("thread_count", 1)
+        thread = f" ({n} msgs in thread)" if n > 1 else ""
+        lines.append(
+            f"- From: {e['from']}{vip} | Subject: {e['subject']}{thread} | "
+            f"Snippet: {e['snippet']} | Link: {e['link']}"
+        )
+    email_lines = "\n".join(lines)
     prompt = (
         "You are composing my morning mail digest. Be terse. "
         "Plain text only — no markdown headers or bold.\n\n"
@@ -148,7 +232,9 @@ def summarize(emails):
         "Emails marked [VIP] must appear under NEEDS ACTION or FYI, "
         "never NOISE."
     )
-    return ask_llm(prompt)
+    # Explicit, larger cap: a heavy mail day must not silently truncate the
+    # digest mid-list the way the 2000-token default could.
+    return ask_llm(prompt, max_tokens=4000)
 
 
 def main():
@@ -157,13 +243,19 @@ def main():
 
     service = gmail_service()
     emails = fetch_emails(service, start, end)
+    threads = group_by_thread(emails)
 
     header = (
         f"📬 Mail digest — {end:%a %d %b %Y}\n"
         f"(window {start:%H:%M %d %b} → {end:%H:%M %d %b} IST, "
         f"{len(emails)} emails)\n\n"
     )
-    body = summarize(emails) if emails else "Quiet inbox: no email in 24h ☕"
+    if not threads:
+        body = "Quiet inbox: no email in 24h ☕"
+    else:
+        digest = validate_links(summarize(threads), [e["link"] for e in emails])
+        # Deterministic VIP block first, then the model's digest.
+        body = vip_block(threads) + digest
     send_telegram(header + body)
 
 

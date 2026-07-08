@@ -24,20 +24,39 @@ FYI / NOISE. One agent, one task, one bot: `@jayanth_morning_email_bot`.
   time, then a metadata-only fetch per message (From, Subject + Gmail's
   own snippet). Metadata format keeps it fast and avoids downloading
   bodies. Each email also gets a deep link
-  (`mail.google.com/mail/u/0/#all/<id>`) straight to the message, and a
-  VIP flag when the sender matches `VIP_SENDERS` (substring,
-  case-insensitive). The list comes from the optional `VIP_SENDERS`
-  secret as comma-separated fragments — never from code, since this
-  repo is public.
-- **`summarize(emails)`** — a single model call. The prompt pastes every
-  email as one line and demands a fixed output shape: one headline, then
-  NEEDS ACTION (reply/decision/deadline, each with its deep link on its
-  own line), FYI (grouped by sender), NOISE (one count line). VIP mail
-  may never land in NOISE. An empty inbox skips the model entirely
-  ("Quiet inbox ☕").
-- **`main()`** — window → fetch → summarize → send, with a header that
-  states the exact window and email count, so a delayed run is honest
-  about what it covered.
+  (`mail.google.com/mail/u/0/#all/<id>`) straight to the message, its
+  `threadId`, and a VIP flag when the sender matches `VIP_SENDERS`
+  (substring, case-insensitive). The list comes from the optional
+  `VIP_SENDERS` secret as comma-separated fragments — never from code,
+  since this repo is public.
+- **`group_by_thread(emails)`** — collapses messages sharing a
+  `threadId` into one entry before summarizing. Gmail lists ids
+  newest-first, so the first message seen for a thread is its most recent
+  one and becomes the representative; the entry records how many messages
+  the thread carried, and is VIP if any of its messages is. A long
+  back-and-forth becomes one digest line instead of N — less prompt
+  bloat, cleaner output.
+- **`summarize(emails)`** — a single model call over the thread-grouped
+  entries. The prompt pastes each as one line and demands a fixed output
+  shape: one headline, then NEEDS ACTION (reply/decision/deadline, each
+  with its deep link on its own line), FYI (grouped by sender), NOISE
+  (one count line). VIP mail may never land in NOISE. Called with an
+  explicit `max_tokens=4000` (up from the 2000 default) so a heavy mail
+  day can't silently truncate the digest mid-list. An empty inbox skips
+  the model entirely ("Quiet inbox ☕").
+- **`vip_block(emails)`** — a code-generated `🔔 VIP` section (sender +
+  subject + link per VIP thread) built deterministically from the `vip`
+  flag and prepended to the digest. VIP mail is therefore *guaranteed*
+  visible regardless of what the model does — the prompt instruction is
+  now only a backstop, not the sole guard.
+- **`validate_links(digest, real_links)`** — strips any Gmail deep link
+  the model emitted that isn't one of the real per-message links,
+  enforcing the "copy links verbatim, never invent one" rule the prompt
+  can only ask for. A hallucinated link becomes `[invalid link removed]`.
+- **`main()`** — window → fetch → group → summarize → validate links →
+  prepend VIP block → send, with a header that states the exact window
+  and (raw, ungrouped) email count, so a delayed run is honest about what
+  it covered.
 - **`agentlib.py`** (vendored) — `ask_llm()` one-shot model call;
   `send_telegram()` chunked sends.
 
