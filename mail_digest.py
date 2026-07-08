@@ -11,6 +11,7 @@ and cricket are separate agents on their own bots.
 Hard failures raise and land in the Actions log.
 """
 
+import json
 import os
 import re
 from datetime import datetime, timedelta
@@ -200,6 +201,63 @@ def validate_links(digest, valid_links):
     return _LINK_RE.sub(repl, digest)
 
 
+STATE_FILE = BASE_DIR / "state" / "noise.json"
+NOISE_DAYS = 14  # history window for unsubscribe suggestions
+NOISE_THRESHOLD = 5  # noise appearances in the window that earn a suggestion
+STATE_MARKER = "===STATE==="
+
+
+def load_noise():
+    """{sender: [dates it was filed as noise]}, pruned to the window."""
+    try:
+        noise = json.loads(STATE_FILE.read_text())
+    except (OSError, ValueError):
+        return {}
+    cutoff = (datetime.now(IST) - timedelta(days=NOISE_DAYS)).strftime("%Y-%m-%d")
+    out = {}
+    for sender, dates in noise.items():
+        kept = sorted(d for d in dates if isinstance(d, str) and d >= cutoff)
+        if kept:
+            out[sender] = kept
+    return out
+
+
+def save_noise(noise):
+    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    STATE_FILE.write_text(json.dumps(noise, indent=1, sort_keys=True) + "\n")
+
+
+def split_state(reply):
+    """(digest text, noise-sender list) — the model appends a JSON tail
+    after STATE_MARKER; a malformed tail costs the trend data, never the
+    digest."""
+    if STATE_MARKER not in reply:
+        return reply.strip(), []
+    text, _, tail = reply.partition(STATE_MARKER)
+    start, end = tail.find("{"), tail.rfind("}")
+    senders = []
+    if start != -1 and end > start:
+        try:
+            senders = json.loads(tail[start : end + 1]).get("noise_senders", [])
+        except (ValueError, AttributeError):
+            senders = []
+    return text.strip(), [s for s in senders if isinstance(s, str)]
+
+
+def unsubscribe_block(noise):
+    """Senders that have been pure noise most days lately — worth ending."""
+    candidates = sorted(
+        (sender, len(dates))
+        for sender, dates in noise.items()
+        if len(dates) >= NOISE_THRESHOLD
+    )
+    if not candidates:
+        return ""
+    lines = ["📉 Unsubscribe candidates (noise on N of the last 14 days):"]
+    lines += [f"• {sender} — {n} days" for sender, n in candidates]
+    return "\n".join(lines)
+
+
 def summarize(emails):
     """One model call: the day's mail sorted by what it needs from me.
 
@@ -230,7 +288,10 @@ def summarize(emails):
         "FYI: noteworthy, no action needed, grouped by sender/thread\n"
         "NOISE: one line — count of newsletters/promos/automated mail\n\n"
         "Emails marked [VIP] must appear under NEEDS ACTION or FYI, "
-        "never NOISE."
+        "never NOISE.\n\n"
+        f"Then output the line {STATE_MARKER} and ONE JSON object: "
+        '{"noise_senders": [the bare email addresses of the senders you '
+        "counted as NOISE]}. No text after the JSON."
     )
     # Explicit, larger cap: a heavy mail day must not silently truncate the
     # digest mid-list the way the 2000-token default could.
@@ -250,13 +311,34 @@ def main():
         f"(window {start:%H:%M %d %b} → {end:%H:%M %d %b} IST, "
         f"{len(emails)} emails)\n\n"
     )
+    noise = load_noise()
+    noise_today = []
     if not threads:
         body = "Quiet inbox: no email in 24h ☕"
     else:
-        digest = validate_links(summarize(threads), [e["link"] for e in emails])
+        digest, noise_today = split_state(summarize(threads))
+        digest = validate_links(digest, [e["link"] for e in emails])
         # Deterministic VIP block first, then the model's digest.
         body = vip_block(threads) + digest
+    # Sundays: surface the senders that have been pure noise all week —
+    # the actionable follow-up to two weeks of NOISE counts.
+    if datetime.now(IST).weekday() == 6:
+        block = unsubscribe_block(noise)
+        if block:
+            body += "\n\n" + block
     send_telegram(header + body)
+
+    # Record today's noise senders — after the send, so a state failure
+    # never costs the digest itself.
+    today = datetime.now(IST).strftime("%Y-%m-%d")
+    for sender in noise_today:
+        days = noise.setdefault(sender.strip().lower(), [])
+        if today not in days:
+            days.append(today)
+    try:
+        save_noise(noise)
+    except OSError:
+        pass
 
 
 if __name__ == "__main__":

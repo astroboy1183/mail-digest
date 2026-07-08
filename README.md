@@ -68,6 +68,11 @@ FYI / NOISE. One agent, one task, one bot: `@jayanth_morning_email_bot`.
 - Two crons + dedupe guard: backup at 07:07 IST delivers only if the
   06:07 primary was dropped or failed.
 
+- **Unsubscribe suggestions (Sundays)**: the model reports each day's
+  noise senders via a hidden `===STATE===` tail into `state/noise.json`
+  (committed back by the workflow); senders that were noise on 5+ of
+  the last 14 days get listed as unsubscribe candidates.
+
 ## Ops
 
 - Schedule: `.github/workflows/mail-digest.yml`
