@@ -73,6 +73,8 @@ FYI / NOISE. One agent, one task, one bot: `@jayanth_morning_email_bot`.
   (committed back by the workflow); senders that were noise on 5+ of
   the last 14 days get listed as unsubscribe candidates.
 
+- Tests run in CI on every push (`.github/workflows/tests.yml`).
+
 ## Ops
 
 - Schedule: `.github/workflows/mail-digest.yml`
