@@ -10,7 +10,12 @@ on:
     # this run when the primary already handled today, so it only delivers
     # when the primary was dropped — or failed, making it a retry too.
     - cron: '37 1 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'Set to "scheduler" by fleet-scheduler; leave empty for manual runs'
+        default: ''
+        required: false
 
 permissions:
   contents: write  # the run commits its state back here
@@ -25,17 +30,19 @@ jobs:
         id: guard
         env:
           GH_TOKEN: ${{ github.token }}
+          DISPATCH_SOURCE: ${{ inputs.source || '' }}
         run: |
-          # Manual runs always proceed; only scheduled runs dedupe against
-          # each other. Fails open — a broken check must never cost a send.
-          if [ "$GITHUB_EVENT_NAME" != "schedule" ]; then
+          # Truly-manual runs always proceed; cron runs and scheduler
+          # dispatches (source=scheduler) dedupe against each other. Fails open — a broken check must never cost a send.
+          if [ "$GITHUB_EVENT_NAME" != "schedule" ] && [ "$DISPATCH_SOURCE" != "scheduler" ]; then
             exit 0
           fi
           today=$(date -u +%Y-%m-%d)
           count=$(RUN_ID="$GITHUB_RUN_ID" gh api -X GET \
             "repos/$GITHUB_REPOSITORY/actions/workflows/mail-digest.yml/runs" \
-            -f event=schedule -f created=">=$today" \
+            -f created=">=$today" \
             --jq '[.workflow_runs[]
+                   | select(.event == "schedule" or .event == "workflow_dispatch")
                    | select(.id != (env.RUN_ID|tonumber))
                    | select(.status == "queued" or .status == "in_progress"
                             or .conclusion == "success")] | length') || count=0
