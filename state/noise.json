@@ -2,23 +2,30 @@
  "admissions@arizona.edu": [
   "2026-07-08"
  ],
+ "admissions@grad.business.vcu.edu": [
+  "2026-07-09"
+ ],
  "alerts@jobsalert.shine.com": [
-  "2026-07-08"
+  "2026-07-08",
+  "2026-07-09"
  ],
  "azure-noreply@microsoft.com": [
   "2026-07-08"
  ],
  "bayareatimes@bayareatimes.com": [
-  "2026-07-08"
+  "2026-07-08",
+  "2026-07-09"
  ],
  "blr_marathahallilcac1@upgrad.com": [
   "2026-07-08"
  ],
  "bryant@footballguys.com": [
-  "2026-07-08"
+  "2026-07-08",
+  "2026-07-09"
  ],
  "businessanalytics@substack.com": [
-  "2026-07-08"
+  "2026-07-08",
+  "2026-07-09"
  ],
  "chase@mcmap.chase.com": [
   "2026-07-08"
@@ -26,8 +33,20 @@
  "corporate@ustaxfiler.com": [
   "2026-07-08"
  ],
+ "deals@deals.vegas.com": [
+  "2026-07-09"
+ ],
+ "deals@emails.flyfrontier.com": [
+  "2026-07-09"
+ ],
  "em@em1.cloudflare.com": [
   "2026-07-08"
+ ],
+ "email@e.krogermail.com": [
+  "2026-07-09"
+ ],
+ "english-quora-digest@quora.com": [
+  "2026-07-09"
  ],
  "eric@jobright.com": [
   "2026-07-08"
@@ -38,17 +57,40 @@
  "gradsupport-engr@mail.engr.udel.edu": [
   "2026-07-08"
  ],
+ "gre-program@mailing.ets.org": [
+  "2026-07-09"
+ ],
+ "hulu@hulumail.com": [
+  "2026-07-09"
+ ],
  "info-svtemplemi.org@shared1.ccsend.com": [
-  "2026-07-08"
+  "2026-07-08",
+  "2026-07-09"
+ ],
+ "info@digital.axisbankmail.bank.in": [
+  "2026-07-09"
  ],
  "info@emp.apartmentlist.com": [
   "2026-07-08"
+ ],
+ "inspiration@mp1.tripadvisor.com": [
+  "2026-07-09"
+ ],
+ "jackeclaver@substack.com": [
+  "2026-07-09"
  ],
  "jobs@my.theladders.com": [
   "2026-07-08"
  ],
  "kaplantestprep@mail.kaptest.com": [
-  "2026-07-08"
+  "2026-07-08",
+  "2026-07-09"
+ ],
+ "linkedin@em.linkedin.com": [
+  "2026-07-09"
+ ],
+ "maharajaclub@flyai.airindia.com": [
+  "2026-07-09"
  ],
  "mail@eg.expedia.com": [
   "2026-07-08"
@@ -60,19 +102,32 @@
   "2026-07-08"
  ],
  "messages-noreply@linkedin.com": [
-  "2026-07-08"
+  "2026-07-08",
+  "2026-07-09"
  ],
  "microsoftstore@microsoftstore.microsoft.com": [
   "2026-07-08"
  ],
  "monster@notifications.monster.com": [
-  "2026-07-08"
+  "2026-07-08",
+  "2026-07-09"
+ ],
+ "naukrialerts@naukri.com": [
+  "2026-07-09"
  ],
  "newsletter@economictimesnews.com": [
-  "2026-07-08"
+  "2026-07-08",
+  "2026-07-09"
  ],
  "newsletters@swarajyamag.com": [
-  "2026-07-08"
+  "2026-07-08",
+  "2026-07-09"
+ ],
+ "no-reply@doordash.com": [
+  "2026-07-09"
+ ],
+ "noreply@github.com": [
+  "2026-07-09"
  ],
  "noreply@glassdoor.com": [
   "2026-07-08"
@@ -81,10 +136,17 @@
   "2026-07-08"
  ],
  "noreply@redditmail.com": [
-  "2026-07-08"
+  "2026-07-08",
+  "2026-07-09"
+ ],
+ "onlinecourses@nptel.iitm.ac.in": [
+  "2026-07-09"
  ],
  "rewards@mp1.tripadvisor.com": [
   "2026-07-08"
+ ],
+ "samsung@in.email.samsung.com": [
+  "2026-07-09"
  ],
  "services@custcomm.icicibank.com": [
   "2026-07-08"
@@ -92,7 +154,11 @@
  "team-jio@mailer.jio.com": [
   "2026-07-08"
  ],
+ "uber@uber.com": [
+  "2026-07-09"
+ ],
  "updates-noreply@linkedin.com": [
-  "2026-07-08"
+  "2026-07-08",
+  "2026-07-09"
  ]
 }
