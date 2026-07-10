@@ -27,9 +27,13 @@ def make_fixed_datetime(fixed):
     return Fixed
 
 
-def email(subject="s", vip=False, thread="t1", link="https://mail.google.com/mail/u/0/#all/x"):
-    return {"from": "a@b.c", "subject": subject, "snippet": "…",
-            "link": link, "vip": vip, "threadId": thread}
+def email(subject="s", vip=False, thread="t1",
+          link="https://mail.google.com/mail/u/0/#all/x",
+          unread=False, attach=False, categories=(), ts=0):
+    return {"from": "a@b.c", "sender_email": "a@b.c", "subject": subject,
+            "snippet": "…", "link": link, "vip": vip, "threadId": thread,
+            "unread": unread, "attach": attach,
+            "categories": list(categories), "ts": ts}
 
 
 class DigestWindowTest(unittest.TestCase):
@@ -70,6 +74,14 @@ class ThreadGroupingTest(unittest.TestCase):
             email(thread=None, link="https://mail.google.com/mail/u/0/#all/2"),
         ])
         self.assertEqual(len(out), 2)
+
+    def test_unread_and_attach_propagate_across_thread(self):
+        out = md.group_by_thread([
+            email(unread=False, attach=False),
+            email(unread=True, attach=True),
+        ])
+        self.assertTrue(out[0]["unread"])
+        self.assertTrue(out[0]["attach"])
 
 
 class VipBlockAndLinksTest(unittest.TestCase):
@@ -124,6 +136,59 @@ class NoiseMemoryTest(unittest.TestCase):
         self.assertEqual(md.unsubscribe_block(quiet), "")
         block = md.unsubscribe_block(noisy)
         self.assertIn("spam@x.c — 6 days", block)
+
+
+class NoiseLineTest(unittest.TestCase):
+
+    def test_counts_by_gmail_category(self):
+        emails = [
+            email(categories=("promos",)), email(categories=("promos",)),
+            email(categories=("updates",)), email(),
+        ]
+        line = md.noise_line(emails)
+        self.assertEqual(line, "🗑 3 noise — 2 promos · 1 updates")
+
+    def test_silent_without_categorized_mail(self):
+        self.assertEqual(md.noise_line([email(), email()]), "")
+
+
+class StillUnreadTest(unittest.TestCase):
+
+    def test_block_lists_oldest_with_links(self):
+        items = [email(subject="LIC renewal", ts=1_752_000_000_000)]
+        block = md.still_unread_block(items, extra=2)
+        self.assertIn("⏳ STILL UNREAD", block)
+        self.assertIn("LIC renewal", block)
+        self.assertIn("https://mail.google.com", block)
+        self.assertIn("…and 2 more", block)
+
+    def test_empty_means_no_block(self):
+        self.assertEqual(md.still_unread_block([], 0), "")
+
+
+class StatsTest(unittest.TestCase):
+
+    def test_record_and_weekly_rollup(self):
+        stats = {}
+        day1 = [email(categories=("promos",)), email(), email()]
+        stats = md.record_stats(stats, "2026-07-09", day1)
+        stats = md.record_stats(stats, "2026-07-10", [email()])
+        self.assertEqual(stats["2026-07-09"]["total"], 3)
+        self.assertEqual(stats["2026-07-09"]["noise"], 1)
+        week = md.weekly_block(stats)
+        self.assertIn("4 emails", week)
+        self.assertIn("25% noise", week)
+        self.assertIn("a@b.c (4)", week)
+
+    def test_weekly_block_empty_without_data(self):
+        self.assertEqual(md.weekly_block({}), "")
+
+
+class BareEmailTest(unittest.TestCase):
+
+    def test_extracts_and_lowers(self):
+        self.assertEqual(md.bare_email("Boss Man <Boss@Co.IN>"), "boss@co.in")
+        self.assertEqual(md.bare_email("no-address-here"), "no-address-here")
 
 
 if __name__ == "__main__":

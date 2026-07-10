@@ -1,12 +1,24 @@
 #!/usr/bin/env python3
 """Mail digest.
 
-One Telegram message every morning (~6:07 IST via GitHub Actions): ALL
-Gmail from the previous 24h (6AM→6AM IST window) sorted into needs-action,
-FYI and noise.
+One Telegram message every morning (~6:07 IST via GitHub Actions) — an
+inbox guardian, not just a traffic summary:
 
-One agent, one task, one bot (@jayanth_morning_email_bot). Weather, news
-and cricket are separate agents on their own bots.
+  🔔 VIP            — code-guaranteed block for senders on the VIP list
+  ⚡ NEEDS ACTION   — numbered, deadline-first, deep link per item
+  📥 FYI            — capped at 6, deep link per item
+  ⏳ STILL UNREAD   — inbox mail 2-14 days old still sitting unread (the
+                      24h window can't see it; this is where mail rots)
+  🗑 noise          — deterministic count from Gmail's own category
+                      labels (promos · updates · social · forums)
+  📊 / 📉 Sundays   — week volume/noise stats + unsubscribe candidates
+
+Every email shown anywhere carries its deep link into Gmail, validated
+against the real per-message links so a hallucinated link can never
+reach me. Unread and 📎-attachment flags ride along from Gmail labels
+and one extra has:attachment query.
+
+One agent, one task, one bot (@jayanth_morning_email_bot).
 
 Hard failures raise and land in the Actions log.
 """
@@ -39,6 +51,27 @@ IST = ZoneInfo("Asia/Kolkata")
 VIP_SENDERS = [
     s.strip() for s in os.environ.get("VIP_SENDERS", "").split(",") if s.strip()
 ]
+
+# Gmail's own inbox categories — the deterministic backbone of the noise
+# count. The model never counts noise; Python does, from these labels.
+CATEGORY_LABELS = {
+    "CATEGORY_PROMOTIONS": "promos",
+    "CATEGORY_UPDATES": "updates",
+    "CATEGORY_SOCIAL": "social",
+    "CATEGORY_FORUMS": "forums",
+}
+
+FYI_CAP = 6            # FYI items shown before "…and N more"
+STALE_UNREAD_CAP = 5   # oldest still-unread items shown
+STALE_UNREAD_QUERY = "in:inbox is:unread older_than:2d newer_than:14d"
+
+EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+
+
+def bare_email(from_header):
+    """'Name <a@b.c>' → 'a@b.c' (lowered); falls back to the whole header."""
+    m = EMAIL_RE.search(from_header or "")
+    return m.group(0).lower() if m else (from_header or "").lower()
 
 
 def digest_window():
@@ -80,9 +113,8 @@ def gmail_service():
     return build("gmail", "v1", credentials=creds)
 
 
-def fetch_emails(service, start, end):
-    """Every message in [start, end) — read or unread — minus spam."""
-    query = f"after:{int(start.timestamp())} before:{int(end.timestamp())} -category:spam"
+def _list_ids(service, query, cap=None):
+    """All message ids matching a Gmail search (paginated, optional cap)."""
     ids = []
     page_token = None
     while True:
@@ -94,40 +126,76 @@ def fetch_emails(service, start, end):
         )
         ids.extend(m["id"] for m in resp.get("messages", []))
         page_token = resp.get("nextPageToken")
-        if not page_token:
+        if not page_token or (cap and len(ids) >= cap):
             break
+    return ids[:cap] if cap else ids
 
-    emails = []
-    for msg_id in ids:
-        msg = (
-            service.users()
-            .messages()
-            .get(
-                userId="me",
-                id=msg_id,
-                format="metadata",
-                metadataHeaders=["From", "Subject"],
-            )
-            .execute()
+
+def _fetch_meta(service, msg_id):
+    """One message's metadata → our email dict (labels drive the flags)."""
+    msg = (
+        service.users()
+        .messages()
+        .get(
+            userId="me",
+            id=msg_id,
+            format="metadata",
+            metadataHeaders=["From", "Subject"],
         )
-        headers = {
-            h["name"]: h["value"] for h in msg.get("payload", {}).get("headers", [])
-        }
-        sender = headers.get("From", "(unknown sender)")
-        emails.append(
-            {
-                "from": sender,
-                "subject": headers.get("Subject", "(no subject)"),
-                "snippet": msg.get("snippet", ""),
-                # deep link straight to the message in the Gmail web UI
-                "link": f"https://mail.google.com/mail/u/0/#all/{msg_id}",
-                "vip": any(v.lower() in sender.lower() for v in VIP_SENDERS),
-                # thread this message belongs to — messages in the same
-                # conversation are collapsed to one digest entry downstream
-                "threadId": msg.get("threadId"),
-            }
-        )
+        .execute()
+    )
+    headers = {
+        h["name"]: h["value"] for h in msg.get("payload", {}).get("headers", [])
+    }
+    sender = headers.get("From", "(unknown sender)")
+    labels = set(msg.get("labelIds", []))
+    return {
+        "from": sender,
+        "sender_email": bare_email(sender),
+        "subject": headers.get("Subject", "(no subject)"),
+        "snippet": msg.get("snippet", ""),
+        # deep link straight to the message in the Gmail web UI
+        "link": f"https://mail.google.com/mail/u/0/#all/{msg_id}",
+        "vip": any(v.lower() in sender.lower() for v in VIP_SENDERS),
+        "unread": "UNREAD" in labels,
+        "categories": sorted(
+            CATEGORY_LABELS[l] for l in labels if l in CATEGORY_LABELS
+        ),
+        "attach": False,  # filled in by the has:attachment pass
+        # epoch ms — used to date the still-unread block
+        "ts": int(msg.get("internalDate", 0)),
+        # thread this message belongs to — messages in the same
+        # conversation are collapsed to one digest entry downstream
+        "threadId": msg.get("threadId"),
+    }
+
+
+def fetch_emails(service, start, end):
+    """Every message in [start, end) — read or unread — minus spam.
+
+    A second, cheap search marks which of them carry attachments: 📎 is
+    a one-query flag, not a per-message metadata dig."""
+    base = f"after:{int(start.timestamp())} before:{int(end.timestamp())} -category:spam"
+    emails = [_fetch_meta(service, mid) for mid in _list_ids(service, base)]
+    try:
+        with_attach = set(_list_ids(service, base + " has:attachment"))
+        for e in emails:
+            e["attach"] = e["link"].rsplit("/", 1)[-1] in with_attach
+    except Exception:
+        pass  # attachment flags are an enrichment, never worth a dead run
     return emails
+
+
+def fetch_still_unread(service):
+    """(items, extra_count): oldest inbox mail 2-14 days old, still unread.
+
+    The daily window only sees 24h — this is the mail quietly rotting
+    beyond it. Oldest first, capped, with the overflow counted."""
+    ids = _list_ids(service, STALE_UNREAD_QUERY, cap=25)
+    items = sorted(
+        (_fetch_meta(service, mid) for mid in ids), key=lambda e: e["ts"]
+    )
+    return items[:STALE_UNREAD_CAP], max(0, len(items) - STALE_UNREAD_CAP)
 
 
 def group_by_thread(emails):
@@ -136,8 +204,8 @@ def group_by_thread(emails):
     Gmail lists ids newest-first, so the first message we see for a thread
     is its most recent one — we keep that as the thread's representative
     and only note how many messages the thread carried. A thread counts as
-    VIP if any of its messages is. This keeps a busy back-and-forth from
-    flooding the prompt (and the digest) as N near-identical lines.
+    VIP/unread/📎 if any of its messages is. This keeps a busy
+    back-and-forth from flooding the prompt as N near-identical lines.
     """
     grouped = {}
     order = []
@@ -154,11 +222,13 @@ def group_by_thread(emails):
             rep = grouped[key]
             rep["thread_count"] += 1
             rep["vip"] = rep["vip"] or e["vip"]
+            rep["unread"] = rep["unread"] or e["unread"]
+            rep["attach"] = rep["attach"] or e["attach"]
     return [grouped[k] for k in order]
 
 
 def vip_block(emails):
-    """Code-generated '🔔 VIP' section, prepended to the digest.
+    """Code-generated '🔔 VIP' section.
 
     Built deterministically from the already-computed e['vip'] flag so VIP
     mail is GUARANTEED to surface — it does not depend on the model doing
@@ -169,9 +239,43 @@ def vip_block(emails):
         return ""
     lines = ["🔔 VIP"]
     for e in vips:
-        lines.append(f"• {e['from']} — {e['subject']}")
+        n = e.get("thread_count", 1)
+        marks = "".join(
+            [" 📎" if e.get("attach") else "", f" ({n} msgs)" if n > 1 else ""]
+        )
+        lines.append(f"• {e['from']} — {e['subject']}{marks}")
         lines.append(f"  {e['link']}")
-    return "\n".join(lines) + "\n\n"
+    return "\n".join(lines)
+
+
+def noise_line(emails):
+    """'🗑 14 noise — 9 promos · 3 updates · 2 social' from Gmail's own
+    category labels. Deterministic Python; the model never counts."""
+    counts = {}
+    for e in emails:
+        for cat in e.get("categories", []):
+            counts[cat] = counts.get(cat, 0) + 1
+    total = sum(counts.values())
+    if not total:
+        return ""
+    parts = " · ".join(
+        f"{n} {cat}" for cat, n in sorted(counts.items(), key=lambda kv: -kv[1])
+    )
+    return f"🗑 {total} noise — {parts}"
+
+
+def still_unread_block(items, extra):
+    """'⏳ STILL UNREAD' section from fetch_still_unread's findings."""
+    if not items:
+        return ""
+    lines = ["⏳ STILL UNREAD — older than 2 days"]
+    for e in items:
+        day = datetime.fromtimestamp(e["ts"] / 1000, IST).strftime("%a") if e["ts"] else "?"
+        lines.append(f"• {day} — {e['subject']} ({e['sender_email']})")
+        lines.append(f"  {e['link']}")
+    if extra:
+        lines.append(f"…and {extra} more")
+    return "\n".join(lines)
 
 
 _LINK_RE = re.compile(r"https://mail\.google\.com/\S+")
@@ -202,8 +306,10 @@ def validate_links(digest, valid_links):
 
 
 STATE_FILE = BASE_DIR / "state" / "noise.json"
+STATS_FILE = BASE_DIR / "state" / "stats.json"
 NOISE_DAYS = 14  # history window for unsubscribe suggestions
 NOISE_THRESHOLD = 5  # noise appearances in the window that earn a suggestion
+STATS_DAYS = 8  # daily volume records kept (a week + margin)
 STATE_MARKER = "===STATE==="
 
 
@@ -225,6 +331,50 @@ def load_noise():
 def save_noise(noise):
     STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
     STATE_FILE.write_text(json.dumps(noise, indent=1, sort_keys=True) + "\n")
+
+
+def load_stats():
+    """{date: {total, noise, senders{email: n}}}, pruned to STATS_DAYS."""
+    try:
+        stats = json.loads(STATS_FILE.read_text())
+    except (OSError, ValueError):
+        return {}
+    cutoff = (datetime.now(IST) - timedelta(days=STATS_DAYS)).strftime("%Y-%m-%d")
+    return {d: v for d, v in stats.items() if isinstance(d, str) and d >= cutoff}
+
+
+def save_stats(stats):
+    STATS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    STATS_FILE.write_text(json.dumps(stats, indent=1, sort_keys=True) + "\n")
+
+
+def record_stats(stats, day, emails):
+    """Fold one day's volume into the stats state (top 5 senders kept)."""
+    senders = {}
+    noise_count = 0
+    for e in emails:
+        senders[e["sender_email"]] = senders.get(e["sender_email"], 0) + 1
+        if e.get("categories"):
+            noise_count += 1
+    top = dict(sorted(senders.items(), key=lambda kv: -kv[1])[:5])
+    stats[day] = {"total": len(emails), "noise": noise_count, "senders": top}
+    return stats
+
+
+def weekly_block(stats):
+    """'📊 This week: …' — Sunday-only, deterministic from the stats state."""
+    if not stats:
+        return ""
+    total = sum(v.get("total", 0) for v in stats.values())
+    noise = sum(v.get("noise", 0) for v in stats.values())
+    senders = {}
+    for v in stats.values():
+        for s, n in v.get("senders", {}).items():
+            senders[s] = senders.get(s, 0) + n
+    top = sorted(senders.items(), key=lambda kv: -kv[1])[:3]
+    busiest = ", ".join(f"{s} ({n})" for s, n in top)
+    pct = round(noise / total * 100) if total else 0
+    return f"📊 This week: {total} emails · {pct}% noise · busiest: {busiest}"
 
 
 def split_state(reply):
@@ -253,45 +403,67 @@ def unsubscribe_block(noise):
     )
     if not candidates:
         return ""
-    lines = ["📉 Unsubscribe candidates (noise on N of the last 14 days):"]
+    lines = ["📉 Unsubscribe candidates (noise-heavy, last 14 days):"]
     lines += [f"• {sender} — {n} days" for sender, n in candidates]
     return "\n".join(lines)
 
 
 def summarize(emails):
-    """One model call: the day's mail sorted by what it needs from me.
+    """One model call: the day's mail → headline + ⚡ NEEDS ACTION + 📥 FYI.
 
     Expects thread-grouped entries (see group_by_thread): one line per
-    conversation, not per message.
+    conversation, not per message. Noise is NOT the model's job — Gmail's
+    category labels are counted in code — but the model still names noise
+    senders in the STATE tail for the unsubscribe memory.
     """
     lines = []
     for e in emails:
-        vip = " [VIP]" if e["vip"] else ""
+        flags = "".join(
+            [
+                " [VIP]" if e["vip"] else "",
+                " [UNREAD]" if e.get("unread") else "",
+                " [ATTACH]" if e.get("attach") else "",
+                f" [{'/'.join(e['categories'])}]" if e.get("categories") else "",
+            ]
+        )
         n = e.get("thread_count", 1)
         thread = f" ({n} msgs in thread)" if n > 1 else ""
         lines.append(
-            f"- From: {e['from']}{vip} | Subject: {e['subject']}{thread} | "
+            f"- From: {e['from']}{flags} | Subject: {e['subject']}{thread} | "
             f"Snippet: {e['snippet']} | Link: {e['link']}"
         )
     email_lines = "\n".join(lines)
     prompt = (
         "You are composing my morning mail digest. Be terse. "
         "Plain text only — no markdown headers or bold.\n\n"
-        "=== INPUT: every email from the last 24h "
-        "(sender, subject, snippet, link) ===\n"
+        "=== INPUT: every email thread from the last 24h "
+        "(sender, flags, subject, snippet, link) ===\n"
         f"{email_lines}\n\n"
         "Produce EXACTLY this output structure:\n\n"
-        "<one-line headline for the day's mail>\n"
-        "NEEDS ACTION: emails needing a reply/decision/deadline — sender + "
-        "what + when, then the email's Link on its own line (or 'nothing' "
-        "if none). Copy links verbatim — never invent one.\n"
-        "FYI: noteworthy, no action needed, grouped by sender/thread\n"
-        "NOISE: one line — count of newsletters/promos/automated mail\n\n"
-        "Emails marked [VIP] must appear under NEEDS ACTION or FYI, "
-        "never NOISE.\n\n"
+        "<one-line headline for the day's mail>\n\n"
+        "⚡ NEEDS ACTION — <count>\n"
+        "1. ⏰ <deadline: 'today' / 'Mon' / '15 Jul' — or 'reply' when it "
+        "just needs an answer> — <what, concretely> (<short sender>"
+        "<, unread if [UNREAD]>)<append 📎 if [ATTACH]>\n"
+        "<that email's Link on its own line>\n"
+        "…numbered, most urgent first. If none: '⚡ NEEDS ACTION — none 🎉' "
+        "with no items.\n\n"
+        "📥 FYI — <count>\n"
+        "• <one-line summary> (<short sender><, N msgs if a thread>)\n"
+        "<that email's Link on its own line>\n"
+        f"…at most {FYI_CAP} items, most notable first; if more were "
+        "worth listing, end the section with '…and N more'.\n\n"
+        "Rules:\n"
+        "- Emails tagged with a Gmail category ([promos]/[updates]/"
+        "[social]/[forums]) are noise: leave them out entirely (the code "
+        "reports noise separately) UNLESS one is genuinely important — a "
+        "bill due, a security alert, a delivery today.\n"
+        "- [VIP] emails must appear in ⚡ or 📥, never omitted.\n"
+        "- Copy links verbatim — never invent one.\n"
+        "- No other sections, no noise counts.\n\n"
         f"Then output the line {STATE_MARKER} and ONE JSON object: "
         '{"noise_senders": [the bare email addresses of the senders you '
-        "counted as NOISE]}. No text after the JSON."
+        "treated as noise]}. No text after the JSON."
     )
     # Explicit, larger cap: a heavy mail day must not silently truncate the
     # digest mid-list the way the 2000-token default could.
@@ -305,31 +477,49 @@ def main():
     service = gmail_service()
     emails = fetch_emails(service, start, end)
     threads = group_by_thread(emails)
+    try:
+        stale, stale_extra = fetch_still_unread(service)
+    except Exception:  # inbox-health extra must never kill the digest
+        stale, stale_extra = [], 0
 
+    unread_count = sum(1 for e in emails if e.get("unread"))
     header = (
-        f"📬 Mail digest — {end:%a %d %b %Y}\n"
-        f"(window {start:%H:%M %d %b} → {end:%H:%M %d %b} IST, "
-        f"{len(emails)} emails)\n\n"
+        f"📬 Mail — {end:%a %d %b}\n"
+        f"{len(emails)} emails ({unread_count} unread) · "
+        f"6 AM {start:%a} → 6 AM {end:%a}"
     )
+
     noise = load_noise()
+    stats = load_stats()
     noise_today = []
+    parts = [header]
     if not threads:
-        body = "Quiet inbox: no email in 24h ☕"
+        parts.append("Quiet inbox: no email in 24h ☕")
     else:
         digest, noise_today = split_state(summarize(threads))
         digest = validate_links(digest, [e["link"] for e in emails])
-        # Deterministic VIP block first, then the model's digest.
-        body = vip_block(threads) + digest
-    # Sundays: surface the senders that have been pure noise all week —
-    # the actionable follow-up to two weeks of NOISE counts.
+        vip = vip_block(threads)
+        if vip:
+            parts.append(vip)
+        parts.append(digest)
+    stale_part = still_unread_block(stale, stale_extra)
+    if stale_part:
+        parts.append(stale_part)
+    trash = noise_line(emails)
+    if trash:
+        parts.append(trash)
+    # Sundays: zoom out — week volume stats + the unsubscribe shortlist.
     if datetime.now(IST).weekday() == 6:
-        block = unsubscribe_block(noise)
-        if block:
-            body += "\n\n" + block
-    send_telegram(header + body)
+        week = weekly_block(stats)
+        if week:
+            parts.append(week)
+        unsub = unsubscribe_block(noise)
+        if unsub:
+            parts.append(unsub)
+    send_telegram("\n\n".join(parts))
 
-    # Record today's noise senders — after the send, so a state failure
-    # never costs the digest itself.
+    # Record state — after the send, so a state failure never costs the
+    # digest itself.
     today = datetime.now(IST).strftime("%Y-%m-%d")
     for sender in noise_today:
         days = noise.setdefault(sender.strip().lower(), [])
@@ -337,6 +527,7 @@ def main():
             days.append(today)
     try:
         save_noise(noise)
+        save_stats(record_stats(stats, f"{end:%Y-%m-%d}", emails))
     except OSError:
         pass
 

@@ -1,9 +1,44 @@
 # mail-digest
 
-Gmail 24h digest → Telegram, ~6:07 AM IST via GitHub Actions.
+Gmail 24h digest → Telegram, ~6:07 AM IST via GitHub Actions — an
+inbox guardian, not just a traffic summary. One agent, one task, one
+bot: `@jayanth_morning_email_bot`.
 
-All mail from the previous 6AM→6AM IST window sorted into NEEDS ACTION /
-FYI / NOISE. One agent, one task, one bot: `@jayanth_morning_email_bot`.
+```
+📬 Mail — Fri 10 Jul
+23 emails (9 unread) · 6 AM Thu → 6 AM Fri
+
+🔔 VIP
+• Boss <boss@co.in> — Re: Q3 budget (2 msgs) 📎
+  link
+
+⚡ NEEDS ACTION — 2
+1. ⏰ Mon — LIC premium ₹12,400 due (LIC)
+   link
+2. reply — Rahul asking about weekend plans (unread)
+   link
+
+📥 FYI — 3 (capped at 6, "…and N more")
+• HDFC card statement generated 📎
+  link
+…
+
+⏳ STILL UNREAD — older than 2 days
+• Tue — LIC renewal notice (lic@licindia.com)
+  link
+
+🗑 14 noise — 9 promos · 3 updates · 2 social
+
+(Sundays add:)
+📊 This week: 143 emails · 61% noise · busiest: amazon (12) …
+📉 Unsubscribe candidates …
+```
+
+Every email shown carries its validated deep link. Unread and 📎 flags
+come from Gmail labels + one has:attachment query; the noise count is
+deterministic Python over Gmail's own category labels (the model never
+counts); ⏳ surfaces inbox mail 2-14 days old still sitting unread — the
+mail the 24h window can't see.
 
 ## How the code works
 

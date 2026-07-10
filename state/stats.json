@@ -1,0 +1,13 @@
+{
+ "2026-07-10": {
+  "noise": 55,
+  "senders": {
+   "alerts@axis.bank.in": 4,
+   "bryant@footballguys.com": 2,
+   "chase@mcmap.chase.com": 3,
+   "monster@notifications.monster.com": 6,
+   "notifications@github.com": 3
+  },
+  "total": 57
+ }
+}
