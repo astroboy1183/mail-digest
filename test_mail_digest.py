@@ -9,7 +9,7 @@ unsubscribe suggestions.
 import json
 import tempfile
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -30,9 +30,10 @@ def make_fixed_datetime(fixed):
 def email(subject="s", vip=False, thread="t1",
           link="https://mail.google.com/mail/u/0/#all/x",
           unread=False, attach=False, categories=(), ts=0):
-    return {"from": "a@b.c", "sender_email": "a@b.c", "subject": subject,
+    return {"id": link.rsplit("/", 1)[-1], "from": "a@b.c",
+            "sender_email": "a@b.c", "subject": subject,
             "snippet": "…", "link": link, "vip": vip, "threadId": thread,
-            "unread": unread, "attach": attach,
+            "unread": unread, "attach": attach, "files": [],
             "categories": list(categories), "ts": ts}
 
 
@@ -106,27 +107,31 @@ class VipBlockAndLinksTest(unittest.TestCase):
 
 class NoiseMemoryTest(unittest.TestCase):
 
-    def test_split_state_extracts_senders(self):
-        reply = f'digest text\n{md.STATE_MARKER}\n{{"noise_senders": ["a@b.c"]}}'
-        text, senders = md.split_state(reply)
-        self.assertEqual((text, senders), ("digest text", ["a@b.c"]))
+    def test_split_state_extracts_senders_and_actions(self):
+        reply = (f'digest text\n{md.STATE_MARKER}\n'
+                 '{"noise_senders": ["a@b.c"], "actions": '
+                 '[{"what": "reply to HR", "link": "L", "deadline": null}]}')
+        text, senders, actions = md.split_state(reply)
+        self.assertEqual(text, "digest text")
+        self.assertEqual(senders, ["a@b.c"])
+        self.assertEqual(actions[0]["what"], "reply to HR")
 
     def test_garbage_tail_costs_memory_not_digest(self):
-        text, senders = md.split_state(f"digest\n{md.STATE_MARKER}\nnot json")
-        self.assertEqual((text, senders), ("digest", []))
+        text, senders, actions = md.split_state(f"digest\n{md.STATE_MARKER}\nnot json")
+        self.assertEqual((text, senders, actions), ("digest", [], []))
 
     def test_load_noise_prunes_old_dates(self):
         with tempfile.TemporaryDirectory() as tmp:
-            saved = md.STATE_FILE
-            md.STATE_FILE = Path(tmp) / "noise.json"
+            saved = md.NOISE_FILE
+            md.NOISE_FILE = Path(tmp) / "noise.json"
             try:
                 today = datetime.now(IST).strftime("%Y-%m-%d")
-                md.STATE_FILE.write_text(json.dumps(
+                md.NOISE_FILE.write_text(json.dumps(
                     {"new@x.c": [today], "old@x.c": ["2020-01-01"]}
                 ))
                 noise = md.load_noise()
             finally:
-                md.STATE_FILE = saved
+                md.NOISE_FILE = saved
         self.assertIn("new@x.c", noise)
         self.assertNotIn("old@x.c", noise)
 
@@ -171,13 +176,14 @@ class StatsTest(unittest.TestCase):
     def test_record_and_weekly_rollup(self):
         stats = {}
         day1 = [email(categories=("promos",)), email(), email()]
-        stats = md.record_stats(stats, "2026-07-09", day1)
-        stats = md.record_stats(stats, "2026-07-10", [email()])
+        stats = md.record_stats(stats, "2026-07-09", day1, stale_count=2)
+        stats = md.record_stats(stats, "2026-07-10", [email()], stale_count=1)
         self.assertEqual(stats["2026-07-09"]["total"], 3)
         self.assertEqual(stats["2026-07-09"]["noise"], 1)
         week = md.weekly_block(stats)
         self.assertIn("4 emails", week)
         self.assertIn("25% noise", week)
+        self.assertIn("still-unread pile: 1", week)
         self.assertIn("a@b.c (4)", week)
 
     def test_weekly_block_empty_without_data(self):
@@ -189,6 +195,60 @@ class BareEmailTest(unittest.TestCase):
     def test_extracts_and_lowers(self):
         self.assertEqual(md.bare_email("Boss Man <Boss@Co.IN>"), "boss@co.in")
         self.assertEqual(md.bare_email("no-address-here"), "no-address-here")
+
+
+class LedgerTest(unittest.TestCase):
+
+    def test_ahead_block_orders_and_caps(self):
+        base = datetime.now(IST)
+        deadlines = [
+            {"date": (base + timedelta(days=5)).strftime("%Y-%m-%d"),
+             "what": "Form-16 upload", "link": "L2"},
+            {"date": (base + timedelta(days=1)).strftime("%Y-%m-%d"),
+             "what": "LIC premium", "link": "L1"},
+            {"date": (base + timedelta(days=40)).strftime("%Y-%m-%d"),
+             "what": "beyond horizon", "link": "L3"},
+        ]
+        block = md.ahead_block(deadlines)
+        self.assertTrue(block.startswith("📅 Ahead: "))
+        self.assertLess(block.index("LIC"), block.index("Form-16"))
+        self.assertNotIn("beyond horizon", block)
+
+    def test_carried_block_ages_and_skips_todays(self):
+        day_ms = 86_400_000
+        now_ms = int(datetime.now(IST).timestamp() * 1000)
+        actions = [
+            {"link": "OLD", "what": "reply to HR", "first_ms": now_ms - 3 * day_ms},
+            {"link": "NEW", "what": "fresh today", "first_ms": now_ms},
+        ]
+        block = md.carried_block(actions, today_links={"NEW"})
+        self.assertIn("🔁 CARRIED", block)
+        self.assertIn("3d — reply to HR", block)
+        self.assertNotIn("fresh today", block)
+        self.assertEqual(md.carried_block([], set()), "")
+
+    def test_merge_actions_requires_real_email_and_dedupes(self):
+        e = email(link="https://mail.google.com/mail/u/0/#all/real")
+        by_link = {e["link"]: e}
+        merged = md.merge_actions(
+            [], [
+                {"what": "reply", "link": e["link"]},
+                {"what": "ghost", "link": "https://mail.google.com/fake"},
+                {"what": "dupe", "link": e["link"]},
+            ], by_link,
+        )
+        self.assertEqual(len(merged), 1)
+        self.assertEqual(merged[0]["sender"], "a@b.c")
+        self.assertEqual(merged[0]["thread"], "t1")
+
+    def test_merge_deadlines_validates_dates(self):
+        merged = md.merge_deadlines([], [
+            {"what": "bill", "link": "L", "deadline": "2026-08-01"},
+            {"what": "vague", "link": "L2", "deadline": "next week"},
+            {"what": "none", "link": "L3", "deadline": None},
+        ])
+        self.assertEqual(len(merged), 1)
+        self.assertEqual(merged[0]["date"], "2026-08-01")
 
 
 if __name__ == "__main__":

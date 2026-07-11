@@ -26,21 +26,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Skip if an earlier run already handled today
+      - name: Skip if an earlier run already handled this edition
         id: guard
         env:
           GH_TOKEN: ${{ github.token }}
           DISPATCH_SOURCE: ${{ inputs.source || '' }}
         run: |
           # Truly-manual runs always proceed; cron runs and scheduler
-          # dispatches (source=scheduler) dedupe against each other. Fails open — a broken check must never cost a send.
+          # dispatches (source=scheduler) dedupe against each other.
+          # Window is 3 hours, NOT today: that pairs each backup with its
+          # own edition while letting the 19:00 evening sweep run after a
+          # successful morning digest. Fails open — a broken check must
+          # never cost a digest.
           if [ "$GITHUB_EVENT_NAME" != "schedule" ] && [ "$DISPATCH_SOURCE" != "scheduler" ]; then
             exit 0
           fi
-          today=$(date -u +%Y-%m-%d)
+          since=$(date -u -d '3 hours ago' +%Y-%m-%dT%H:%M:%SZ)
           count=$(RUN_ID="$GITHUB_RUN_ID" gh api -X GET \
             "repos/$GITHUB_REPOSITORY/actions/workflows/mail-digest.yml/runs" \
-            -f created=">=$today" \
+            -f created=">=$since" \
             --jq '[.workflow_runs[]
                    | select(.event == "schedule" or .event == "workflow_dispatch")
                    | select(.id != (env.RUN_ID|tonumber))

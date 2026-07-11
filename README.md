@@ -1,8 +1,17 @@
 # mail-digest
 
-Gmail 24h digest → Telegram, ~6:07 AM IST via GitHub Actions — an
-inbox guardian, not just a traffic summary. One agent, one task, one
-bot: `@jayanth_morning_email_bot`.
+Gmail inbox guardian → Telegram, two editions: the full digest at
+~6:07 AM IST and a 19:00 evening sweep that is SILENT unless can't-wait
+mail arrived since morning. One agent, one task, one bot:
+`@jayanth_morning_email_bot`.
+
+Beyond summarizing, it follows through: action items are remembered and
+re-surface with age tags until your sent mail proves you replied
+(🔁 CARRIED); stated deadlines join a standing ledger that reappears
+every morning until the date passes (📅 Ahead); security alerts get
+their own 🚨 section; 📎 mail shows its attachment filenames; and
+Sundays add a week-over-week scorecard plus VIP suggestions computed
+from who you actually reply to.
 
 ```
 📬 Mail — Fri 10 Jul
