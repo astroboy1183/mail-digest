@@ -3,7 +3,7 @@
 
 An inbox guardian in two editions:
 
-  morning (~6:07 IST) — the full digest of the 6AM→6AM window:
+  morning (6:00 IST) — the full digest of the 6AM→6AM window:
     📅 AHEAD         — standing deadline ledger (a bill due Friday keeps
                        appearing until Friday, whenever it arrived)
     🔔 VIP           — code-guaranteed block for the VIP list

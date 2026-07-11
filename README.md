@@ -110,7 +110,7 @@ mail the 24h window can't see.
   `credentials.json` / `token.json` from repo secrets on every run — the
   files are never committed (see `.gitignore`).
 - Two crons + dedupe guard: backup at 07:07 IST delivers only if the
-  06:07 primary was dropped or failed.
+  06:00 primary was dropped or failed.
 
 - **Unsubscribe suggestions (Sundays)**: the model reports each day's
   noise senders via a hidden `===STATE===` tail into `state/noise.json`
@@ -122,7 +122,7 @@ mail the 24h window can't see.
 ## Ops
 
 - Schedule: `.github/workflows/mail-digest.yml`
-  (`37 0 * * *` UTC = 06:07 IST; backup 07:07)
+  (`30 0 * * *` UTC = 06:00 IST; backup 07:00)
 - Run now: `gh workflow run mail-digest.yml -R astroboy1183/mail-digest`
 - Secrets (Actions): `ANTHROPIC_API_KEY`, `TELEGRAM_BOT_TOKEN`,
   `TELEGRAM_CHAT_ID`, `GMAIL_CREDENTIALS_JSON`, `GMAIL_TOKEN_JSON`,
