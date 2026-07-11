@@ -14,13 +14,20 @@
  "admissions@hult.edu": [
   "2026-07-10"
  ],
+ "alerts@axis.bank.in": [
+  "2026-07-11"
+ ],
  "alerts@jobs.shine.com": [
   "2026-07-10"
  ],
  "alerts@jobsalert.shine.com": [
   "2026-07-08",
   "2026-07-09",
-  "2026-07-10"
+  "2026-07-10",
+  "2026-07-11"
+ ],
+ "auto-offers@offer.capitalone.com": [
+  "2026-07-11"
  ],
  "azure-noreply@microsoft.com": [
   "2026-07-08"
@@ -28,7 +35,11 @@
  "bayareatimes@bayareatimes.com": [
   "2026-07-08",
   "2026-07-09",
-  "2026-07-10"
+  "2026-07-10",
+  "2026-07-11"
+ ],
+ "bestbuy@email.bestbuy.com": [
+  "2026-07-11"
  ],
  "blr_marathahallilcac1@upgrad.com": [
   "2026-07-08"
@@ -36,12 +47,14 @@
  "bryant@footballguys.com": [
   "2026-07-08",
   "2026-07-09",
-  "2026-07-10"
+  "2026-07-10",
+  "2026-07-11"
  ],
  "businessanalytics@substack.com": [
   "2026-07-08",
   "2026-07-09",
-  "2026-07-10"
+  "2026-07-10",
+  "2026-07-11"
  ],
  "chase@mcmap.chase.com": [
   "2026-07-08",
@@ -49,6 +62,9 @@
  ],
  "colgate-jobnotification@noreply.jobs2web.com": [
   "2026-07-10"
+ ],
+ "contact@hireft.com": [
+  "2026-07-11"
  ],
  "contactcrm@enews-airfrance.com": [
   "2026-07-10"
@@ -62,6 +78,12 @@
  "deals@emails.flyfrontier.com": [
   "2026-07-09"
  ],
+ "deltaairlines@o.delta.com": [
+  "2026-07-11"
+ ],
+ "donotreply@match.indeed.com": [
+  "2026-07-11"
+ ],
  "ekansh@quantumworldit.com": [
   "2026-07-10"
  ],
@@ -69,13 +91,15 @@
   "2026-07-08"
  ],
  "email@e.krogermail.com": [
-  "2026-07-09"
+  "2026-07-09",
+  "2026-07-11"
  ],
  "english-quora-digest@quora.com": [
   "2026-07-09"
  ],
  "eric@jobright.com": [
-  "2026-07-08"
+  "2026-07-08",
+  "2026-07-11"
  ],
  "glasp@substack.com": [
   "2026-07-08",
@@ -96,10 +120,12 @@
  "info-svtemplemi.org@shared1.ccsend.com": [
   "2026-07-08",
   "2026-07-09",
-  "2026-07-10"
+  "2026-07-10",
+  "2026-07-11"
  ],
  "info@digital.axisbankmail.bank.in": [
-  "2026-07-09"
+  "2026-07-09",
+  "2026-07-11"
  ],
  "info@emp.apartmentlist.com": [
   "2026-07-08"
@@ -131,7 +157,8 @@
  "kaplantestprep@mail.kaptest.com": [
   "2026-07-08",
   "2026-07-09",
-  "2026-07-10"
+  "2026-07-10",
+  "2026-07-11"
  ],
  "linkedin@em.linkedin.com": [
   "2026-07-09"
@@ -143,6 +170,9 @@
  "mail@eg.expedia.com": [
   "2026-07-08",
   "2026-07-10"
+ ],
+ "mail@mail.adobe.com": [
+  "2026-07-11"
  ],
  "marketing@startupblink.com": [
   "2026-07-10"
@@ -156,7 +186,8 @@
  "messages-noreply@linkedin.com": [
   "2026-07-08",
   "2026-07-09",
-  "2026-07-10"
+  "2026-07-10",
+  "2026-07-11"
  ],
  "microsoftstore@microsoftstore.microsoft.com": [
   "2026-07-08"
@@ -164,14 +195,16 @@
  "monster@notifications.monster.com": [
   "2026-07-08",
   "2026-07-09",
-  "2026-07-10"
+  "2026-07-10",
+  "2026-07-11"
  ],
  "naukrialerts@naukri.com": [
   "2026-07-09"
  ],
  "newsletter@economictimesnews.com": [
   "2026-07-08",
-  "2026-07-09"
+  "2026-07-09",
+  "2026-07-11"
  ],
  "newsletters@swarajyamag.com": [
   "2026-07-08",
@@ -181,11 +214,15 @@
  "no-reply@doordash.com": [
   "2026-07-09"
  ],
+ "noreply-savings@e.marcus.com": [
+  "2026-07-11"
+ ],
  "noreply@github.com": [
   "2026-07-09"
  ],
  "noreply@glassdoor.com": [
-  "2026-07-08"
+  "2026-07-08",
+  "2026-07-11"
  ],
  "noreply@news.paypal.com": [
   "2026-07-08"
@@ -193,7 +230,8 @@
  "noreply@redditmail.com": [
   "2026-07-08",
   "2026-07-09",
-  "2026-07-10"
+  "2026-07-10",
+  "2026-07-11"
  ],
  "onlinecourses@nptel.iitm.ac.in": [
   "2026-07-09"
@@ -207,21 +245,32 @@
  "services@custcomm.icicibank.com": [
   "2026-07-08"
  ],
+ "sharpbyswarajya+economy@substack.com": [
+  "2026-07-11"
+ ],
  "shekhar@quantumworldit.com": [
   "2026-07-10"
  ],
  "staff@whatismyipaddress.com": [
   "2026-07-10"
  ],
+ "support@e.usa.experian.com": [
+  "2026-07-11"
+ ],
  "team-jio@mailer.jio.com": [
   "2026-07-08"
  ],
  "uber@uber.com": [
   "2026-07-09",
-  "2026-07-10"
+  "2026-07-10",
+  "2026-07-11"
  ],
  "updates-noreply@linkedin.com": [
   "2026-07-08",
-  "2026-07-09"
+  "2026-07-09",
+  "2026-07-11"
+ ],
+ "xbox@e.xbox.com": [
+  "2026-07-11"
  ]
 }

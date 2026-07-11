@@ -9,5 +9,16 @@
    "notifications@github.com": 3
   },
   "total": 57
+ },
+ "2026-07-11": {
+  "noise": 54,
+  "senders": {
+   "alerts@axis.bank.in": 10,
+   "bestbuy@email.bestbuy.com": 2,
+   "monster@notifications.monster.com": 6,
+   "support@e.usa.experian.com": 4,
+   "uber@uber.com": 3
+  },
+  "total": 55
  }
 }
