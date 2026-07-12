@@ -1,4 +1,7 @@
 {
+ "admission@graduate.newschool.edu": [
+  "2026-07-12"
+ ],
  "admissions@arizona.edu": [
   "2026-07-08"
  ],
@@ -24,7 +27,8 @@
   "2026-07-08",
   "2026-07-09",
   "2026-07-10",
-  "2026-07-11"
+  "2026-07-11",
+  "2026-07-12"
  ],
  "auto-offers@offer.capitalone.com": [
   "2026-07-11"
@@ -48,13 +52,18 @@
   "2026-07-08",
   "2026-07-09",
   "2026-07-10",
-  "2026-07-11"
+  "2026-07-11",
+  "2026-07-12"
  ],
  "businessanalytics@substack.com": [
   "2026-07-08",
   "2026-07-09",
   "2026-07-10",
-  "2026-07-11"
+  "2026-07-11",
+  "2026-07-12"
+ ],
+ "care@emaila.1mg.com": [
+  "2026-07-12"
  ],
  "chase@mcmap.chase.com": [
   "2026-07-08",
@@ -114,6 +123,9 @@
  "harisha@infopeoplecorp.com": [
   "2026-07-10"
  ],
+ "hi@glasp.co": [
+  "2026-07-12"
+ ],
  "hulu@hulumail.com": [
   "2026-07-09"
  ],
@@ -121,14 +133,17 @@
   "2026-07-08",
   "2026-07-09",
   "2026-07-10",
-  "2026-07-11"
+  "2026-07-11",
+  "2026-07-12"
  ],
  "info@digital.axisbankmail.bank.in": [
   "2026-07-09",
-  "2026-07-11"
+  "2026-07-11",
+  "2026-07-12"
  ],
  "info@emp.apartmentlist.com": [
-  "2026-07-08"
+  "2026-07-08",
+  "2026-07-12"
  ],
  "info@join.netflix.com": [
   "2026-07-10"
@@ -158,14 +173,16 @@
   "2026-07-08",
   "2026-07-09",
   "2026-07-10",
-  "2026-07-11"
+  "2026-07-11",
+  "2026-07-12"
  ],
  "linkedin@em.linkedin.com": [
   "2026-07-09"
  ],
  "maharajaclub@flyai.airindia.com": [
   "2026-07-09",
-  "2026-07-10"
+  "2026-07-10",
+  "2026-07-12"
  ],
  "mail@eg.expedia.com": [
   "2026-07-08",
@@ -189,6 +206,9 @@
   "2026-07-10",
   "2026-07-11"
  ],
+ "met@email.bu.edu": [
+  "2026-07-12"
+ ],
  "microsoftstore@microsoftstore.microsoft.com": [
   "2026-07-08"
  ],
@@ -196,7 +216,8 @@
   "2026-07-08",
   "2026-07-09",
   "2026-07-10",
-  "2026-07-11"
+  "2026-07-11",
+  "2026-07-12"
  ],
  "naukrialerts@naukri.com": [
   "2026-07-09"
@@ -204,15 +225,23 @@
  "newsletter@economictimesnews.com": [
   "2026-07-08",
   "2026-07-09",
-  "2026-07-11"
+  "2026-07-11",
+  "2026-07-12"
  ],
  "newsletters@swarajyamag.com": [
   "2026-07-08",
   "2026-07-09",
-  "2026-07-10"
+  "2026-07-10",
+  "2026-07-12"
  ],
  "no-reply@doordash.com": [
   "2026-07-09"
+ ],
+ "no-reply@substack.com": [
+  "2026-07-12"
+ ],
+ "no_reply@mcmap.chase.com": [
+  "2026-07-12"
  ],
  "noreply-savings@e.marcus.com": [
   "2026-07-11"
@@ -231,7 +260,8 @@
   "2026-07-08",
   "2026-07-09",
   "2026-07-10",
-  "2026-07-11"
+  "2026-07-11",
+  "2026-07-12"
  ],
  "onlinecourses@nptel.iitm.ac.in": [
   "2026-07-09"
@@ -242,14 +272,23 @@
  "samsung@in.email.samsung.com": [
   "2026-07-09"
  ],
+ "samsung@innovations.samsungusa.com": [
+  "2026-07-12"
+ ],
  "services@custcomm.icicibank.com": [
   "2026-07-08"
  ],
  "sharpbyswarajya+economy@substack.com": [
   "2026-07-11"
  ],
+ "sharpbyswarajya+politics@substack.com": [
+  "2026-07-12"
+ ],
  "shekhar@quantumworldit.com": [
   "2026-07-10"
+ ],
+ "sonalisspacemozmasti-space@quora.com": [
+  "2026-07-12"
  ],
  "staff@whatismyipaddress.com": [
   "2026-07-10"
@@ -263,7 +302,8 @@
  "uber@uber.com": [
   "2026-07-09",
   "2026-07-10",
-  "2026-07-11"
+  "2026-07-11",
+  "2026-07-12"
  ],
  "updates-noreply@linkedin.com": [
   "2026-07-08",

@@ -20,5 +20,17 @@
    "uber@uber.com": 3
   },
   "total": 55
+ },
+ "2026-07-12": {
+  "noise": 39,
+  "senders": {
+   "info-svtemplemi.org@shared1.ccsend.com": 2,
+   "monster@notifications.monster.com": 5,
+   "noreply-accounts@google.com": 2,
+   "notifications@github.com": 5,
+   "uber@uber.com": 2
+  },
+  "stale": 25,
+  "total": 39
  }
 }

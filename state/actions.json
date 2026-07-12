@@ -40,5 +40,12 @@
   "sender": "capitalone@notification.capitalone.com",
   "thread": "19f4f747e176d54c",
   "what": "Confirm or cancel Capital One $200 payment scheduled today"
+ },
+ {
+  "first_ms": 1783816241620,
+  "link": "https://mail.google.com/mail/u/0/#all/19f5164d8b930c08",
+  "sender": "notifications@github.com",
+  "thread": "19f5164d8b930c08",
+  "what": "Fix failing tests in housekeeper and fleet-scheduler GitHub repos"
  }
 ]
