@@ -82,5 +82,19 @@
   "sender": "notifications@github.com",
   "thread": "19f574262944a73b",
   "what": "Fix failing tests in finance-tracker main branch"
+ },
+ {
+  "first_ms": 1783949431410,
+  "link": "https://mail.google.com/mail/u/0/#all/19f5b904da5080d0",
+  "sender": "grad@temple.edu",
+  "thread": "19f5b904da5080d0",
+  "what": "Complete and submit Temple University graduate application"
+ },
+ {
+  "first_ms": 1783949431410,
+  "link": "https://mail.google.com/mail/u/0/#all/19f599e2b87d9a27",
+  "sender": "alerts@axis.bank.in",
+  "thread": "19f599e2b87d9a27",
+  "what": "Review and verify Axis Bank debit transaction of INR 96 from account XX1033"
  }
 ]
