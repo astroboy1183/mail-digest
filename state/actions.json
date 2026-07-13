@@ -75,5 +75,12 @@
   "sender": "monster@notifications.monster.com",
   "thread": "19f56791885e195d",
   "what": "Apply for Novartis Data Scientist role, Marlton NJ"
+ },
+ {
+  "first_ms": 1783902639289,
+  "link": "https://mail.google.com/mail/u/0/#all/19f574262944a73b",
+  "sender": "notifications@github.com",
+  "thread": "19f574262944a73b",
+  "what": "Fix failing tests in finance-tracker main branch"
  }
 ]

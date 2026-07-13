@@ -32,5 +32,17 @@
   },
   "stale": 25,
   "total": 39
+ },
+ "2026-07-13": {
+  "noise": 31,
+  "senders": {
+   "alerts@axis.bank.in": 5,
+   "bryant@footballguys.com": 2,
+   "monster@notifications.monster.com": 6,
+   "newsletters@swarajyamag.com": 2,
+   "uberone@uber.com": 1
+  },
+  "stale": 25,
+  "total": 31
  }
 }
