@@ -96,5 +96,12 @@
   "sender": "alerts@axis.bank.in",
   "thread": "19f599e2b87d9a27",
   "what": "Review and verify Axis Bank debit transaction of INR 96 from account XX1033"
+ },
+ {
+  "first_ms": 1784000642688,
+  "link": "https://mail.google.com/mail/u/0/#all/19f5deccaf37c7d9",
+  "sender": "noreply@ymgrad.com",
+  "thread": "19f5deccaf37c7d9",
+  "what": "Review YMGrad fraud prevention notice and confirm payment practices"
  }
 ]
