@@ -44,5 +44,17 @@
   },
   "stale": 25,
   "total": 31
+ },
+ "2026-07-14": {
+  "noise": 40,
+  "senders": {
+   "alerts@axis.bank.in": 2,
+   "kaplantestprep@mail.kaptest.com": 2,
+   "monster@notifications.monster.com": 6,
+   "newsletters@swarajyamag.com": 2,
+   "noreply@ymgrad.com": 1
+  },
+  "stale": 25,
+  "total": 40
  }
 }
