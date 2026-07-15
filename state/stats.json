@@ -56,5 +56,17 @@
   },
   "stale": 25,
   "total": 40
+ },
+ "2026-07-15": {
+  "noise": 54,
+  "senders": {
+   "alerts@axis.bank.in": 6,
+   "businessanalytics@substack.com": 2,
+   "contactcrm@enews-airfrance.com": 2,
+   "info@digital.axisbankmail.bank.in": 3,
+   "monster@notifications.monster.com": 6
+  },
+  "stale": 25,
+  "total": 54
  }
 }
