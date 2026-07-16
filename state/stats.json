@@ -68,5 +68,17 @@
   },
   "stale": 25,
   "total": 54
+ },
+ "2026-07-16": {
+  "noise": 47,
+  "senders": {
+   "alerts@axis.bank.in": 5,
+   "businessanalytics@substack.com": 2,
+   "info@digital.axisbankmail.bank.in": 1,
+   "monster@notifications.monster.com": 6,
+   "newsletters@swarajyamag.com": 2
+  },
+  "stale": 25,
+  "total": 47
  }
 }
