@@ -80,5 +80,17 @@
   },
   "stale": 25,
   "total": 47
+ },
+ "2026-07-17": {
+  "noise": 55,
+  "senders": {
+   "alerts@axis.bank.in": 4,
+   "chase@mcmap.chase.com": 2,
+   "info@digital.axisbankmail.bank.in": 2,
+   "linkedin@em.linkedin.com": 2,
+   "monster@notifications.monster.com": 6
+  },
+  "stale": 25,
+  "total": 57
  }
 }
