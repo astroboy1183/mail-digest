@@ -92,5 +92,17 @@
   },
   "stale": 25,
   "total": 57
+ },
+ "2026-07-18": {
+  "noise": 58,
+  "senders": {
+   "alerts@axis.bank.in": 6,
+   "kaplantestprep@mail.kaptest.com": 2,
+   "monster@notifications.monster.com": 6,
+   "support@e.usa.experian.com": 4,
+   "uber@uber.com": 3
+  },
+  "stale": 25,
+  "total": 59
  }
 }
